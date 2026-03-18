@@ -18,7 +18,7 @@ from validator import clean_and_parse_json, validate_sql_semantics
 # ---------------------------------------------------------------------------
 # Global state
 # ---------------------------------------------------------------------------
-llm_service = LLMService()
+llm_service = None  # Initialize during startup
 
 # Cached at startup
 cached_schema: dict = {}
@@ -34,9 +34,23 @@ sessions: Dict[str, Dict[str, Any]] = {}
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Load CSV into SQLite and cache schema once at startup."""
-    global cached_schema, db_path_str
+    global cached_schema, db_path_str, llm_service
 
-    csv_path = os.getenv("CSV_PATH", "data/dataset.csv")
+    # Initialize LLM service safely
+    try:
+        llm_service = LLMService()
+        print("[startup] LLMService initialized")
+    except Exception as e:
+        print(f"[startup] ERROR initializing LLMService: {e}")
+        llm_service = None
+
+    # Load CSV and create database
+    csv_path = os.getenv("CSV_PATH")
+    if csv_path:
+        csv_path = Path(csv_path)
+    else:
+        csv_path = Path(__file__).parent / "data" / "dataset.csv"
+
     db_path = Path(__file__).parent / "data.db"
     db_path_str = str(db_path)
 
@@ -163,6 +177,9 @@ async def send_chat_message(request: ChatMessageRequest):
         if not cached_schema:
             raise ValueError("Schema not available. Backend may not have loaded the CSV.")
 
+        if llm_service is None:
+            raise ValueError("LLM service not initialized. Check API key configuration.")
+
         schema_str = json.dumps(cached_schema, indent=2)
         past_conversation_str = ctx.get_history_json_str()
 
@@ -231,6 +248,9 @@ async def understand_report(request: ReportRequest):
     # Use global context manager for backward compat
     global_ctx = ContextManager()
     past_conversation_str = global_ctx.get_history_json_str()
+
+    if llm_service is None:
+        raise HTTPException(status_code=500, detail="LLM service not initialized. Check API key configuration.")
 
     prompt = llm_service.build_prompt(request.query, schema_str, past_conversation_str)
     raw_response = llm_service.generate_response(prompt)
