@@ -127,12 +127,14 @@ class ChatMessageResponse(BaseModel):
 @app.post("/chat/session")
 async def create_session():
     """Create a new chat session."""
+    print("🔥 Backend: Creating new session")
     session_id = str(uuid.uuid4())
     sessions[session_id] = {
         "context_manager": ContextManager(),
         "messages": [],
         "created_at": datetime.utcnow().isoformat(),
     }
+    print(f"🔥 Backend: Created session {session_id}")
     return {"session_id": session_id}
 
 
