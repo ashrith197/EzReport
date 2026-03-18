@@ -15,9 +15,9 @@ dist
 dist-ssr
 
 # Environment variables
-.env
-.env.*
-!.env.example
+.env.local
+.env.*.local
+!.env
 
 # Local config
 *.local
