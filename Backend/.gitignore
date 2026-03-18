@@ -39,5 +39,4 @@ Thumbs.db
 *.suo
 *.sw?
 
-# Data (optional — remove if you want to track the dataset)
-data/dataset.csv
+# data/dataset.csv  # uncomment to ignore the dataset
