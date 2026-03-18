@@ -53,10 +53,23 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Chat-Report Generation API", lifespan=lifespan)
 
-# CORS — allow React dev server
+# CORS — allow dev servers, ngrok tunnels, and Vercel deployments
+ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://localhost:5174",
+]
+
+# Allow extra origins via env var (comma-separated) — add your Vercel URL here
+extra_origins = os.getenv("ALLOWED_ORIGINS", "")
+if extra_origins:
+    ALLOWED_ORIGINS.extend([o.strip() for o in extra_origins.split(",") if o.strip()])
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"," http://localhost:5174"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=r"https://(.*\.ngrok-free\.app|.*\.vercel\.app)",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
